@@ -61,8 +61,3 @@ VITE_API_BASE_URL=https://auctionapp-um54.onrender.com
 docker-compose up --build
 ```
 
-
-
-
-## 🏗️ System Architecture
-
