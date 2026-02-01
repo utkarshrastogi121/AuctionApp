@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AuctionItem } from "../types/auction";
 import { socket } from "../lib/socket";
 import { useAuctionTimer } from "../hooks/useAuctionTimer";
@@ -9,16 +9,38 @@ import { Badge } from "./ui/badge";
 export default function AuctionCard({ item }: { item: AuctionItem }) {
   const [price, setPrice] = useState(item.currentBid);
   const [status, setStatus] = useState<"WIN" | "OUT" | null>(null);
+
   const secondsLeft = useAuctionTimer(item.endsAt);
 
-  socket.off("UPDATE_BID").on("UPDATE_BID", (updated: AuctionItem) => {
-    if (updated._id === item._id) {
-      setPrice(updated.currentBid);
-      setStatus(updated.highestBidder === "me" ? "WIN" : "OUT");
-    }
-  });
+  const formatTime = (totalSeconds: number) => {
+    const days = Math.floor(totalSeconds / (24 * 3600));
+    const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-  socket.off("BID_ERROR").on("BID_ERROR", () => setStatus("OUT"));
+    return { days, hours, minutes, seconds };
+  };
+
+  const { days, hours, minutes, seconds } = formatTime(secondsLeft);
+
+  useEffect(() => {
+    const handleUpdateBid = (updated: AuctionItem) => {
+      if (updated._id === item._id) {
+        setPrice(updated.currentBid);
+        setStatus(updated.highestBidder === "me" ? "WIN" : "OUT");
+      }
+    };
+
+    const handleBidError = () => setStatus("OUT");
+
+    socket.on("UPDATE_BID", handleUpdateBid);
+    socket.on("BID_ERROR", handleBidError);
+
+    return () => {
+      socket.off("UPDATE_BID", handleUpdateBid);
+      socket.off("BID_ERROR", handleBidError);
+    };
+  }, [item._id]);
 
   return (
     <Card>
@@ -27,7 +49,28 @@ export default function AuctionCard({ item }: { item: AuctionItem }) {
 
         <p className="text-3xl font-bold">${price}</p>
 
-        <p className="text-sm text-gray-500">⏱ {secondsLeft}s left</p>
+        <div
+          className={`flex gap-4 text-center ${
+            secondsLeft <= 10 ? "text-red-500 font-semibold" : "text-gray-600"
+          }`}
+        >
+          <div>
+            <p className="text-lg font-bold">{days}</p>
+            <p className="text-xs">Days</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold">{hours}</p>
+            <p className="text-xs">Hours</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold">{minutes}</p>
+            <p className="text-xs">Min</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold">{seconds}</p>
+            <p className="text-xs">Sec</p>
+          </div>
+        </div>
 
         {status === "WIN" && <Badge>Winning</Badge>}
         {status === "OUT" && <Badge variant="destructive">Outbid</Badge>}
