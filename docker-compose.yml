@@ -14,15 +14,3 @@ services:
       - "5000:5000"
     env_file:
       - ./backend/.env
-    depends_on:
-      - mongodb_auction
-
-  mongodb_auction:
-    image: mongo:7
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
-volumes:
-  mongo_data:
