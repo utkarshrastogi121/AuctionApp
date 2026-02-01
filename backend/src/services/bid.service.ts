@@ -1,31 +1,38 @@
-import mongoose from "mongoose";
 import { Item } from "../models/Item.model";
-import { isAuctionEnded } from "../utils/time.util";
+import { logger } from "../config/logger";
 
 export const placeBid = async (
   itemId: string,
   amount: number,
-  user: string,
+  user: string
 ) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const now = new Date();
 
-  try {
-    const item = await Item.findById(itemId).session(session);
-    if (!item) throw new Error("Item not found");
-    if (isAuctionEnded(item.endsAt)) throw new Error("Auction ended");
-    if (amount <= item.currentBid) throw new Error("Outbid");
+  const updatedItem = await Item.findOneAndUpdate(
+    {
+      _id: itemId,
+      endsAt: { $gt: now },
+      currentBid: { $lt: amount }, // 🔒 atomic check
+    },
+    {
+      $set: {
+        currentBid: amount,
+        highestBidder: user,
+      },
+    },
+    { new: true }
+  );
 
-    item.currentBid = amount;
-    item.highestBidder = user;
-    await item.save();
-
-    await session.commitTransaction();
-    return item;
-  } catch (err) {
-    await session.abortTransaction();
-    throw err;
-  } finally {
-    session.endSession();
+  if (!updatedItem) {
+    logger.warn("Bid rejected", { itemId, amount, user });
+    throw new Error("Outbid or auction ended");
   }
+
+  logger.info("Bid accepted", {
+    itemId,
+    amount,
+    user,
+  });
+
+  return updatedItem;
 };
