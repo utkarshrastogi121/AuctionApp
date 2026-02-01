@@ -4,7 +4,7 @@ import app from "./app";
 import { connectDB } from "./config/db";
 import { registerBidSocket } from "./sockets/bid.socket";
 import { logger } from "./config/logger";
-
+import "dotenv/config";
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
