@@ -1,3 +1,3 @@
 export const isAuctionEnded = (endsAt: Date) => {
-return new Date() > endsAt;
+  return new Date() > endsAt;
 };
