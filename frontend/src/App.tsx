@@ -1,8 +1,16 @@
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./routes/AppRoutes";
+import Header from "./components/Header";
 
-const App = () => {
+export default function App() {
   return (
-    <div>App</div>
-  )
+    <BrowserRouter>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="p-8">
+          <AppRoutes />
+        </main>
+      </div>
+    </BrowserRouter>
+  );
 }
-
-export default App
